@@ -463,7 +463,7 @@ function stop_puppet_server () {
   execute "puppet resource service puppetmaster ensure=stopped" 
 }
 
-function check_if_puppet_clinet_is_installed () {
+function check_if_puppet_client_is_installed () {
   print_info "Checking to see if puppet agent is installed..."
   case "$os" in
     centos|redhat)
@@ -585,6 +585,7 @@ function install_passenger () {
 function configure_passenger () {
   print_info "Configuring passenger..."
   local puppet_server_fqdn=$(hostname --fqdn)
+  local puppet_server_fqdn_lowercase=$(echo $puppet_server_fqdn | tr '[:upper:]' '[:lower:]')
   local puppet_conf="/etc/puppet/puppet.conf"
   local passenger_conf
   local ruby_path
@@ -631,8 +632,8 @@ Listen 8140
         SSLProtocol -ALL +SSLv3 +TLSv1
         SSLCipherSuite ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:-LOW:-SSLv2:-EXP
 
-        SSLCertificateFile      /var/lib/puppet/ssl/certs/${puppet_server_fqdn}.pem
-        SSLCertificateKeyFile   /var/lib/puppet/ssl/private_keys/${puppet_server_fqdn}.pem
+        SSLCertificateFile      /var/lib/puppet/ssl/certs/${puppet_server_fqdn_lowercase}.pem
+        SSLCertificateKeyFile   /var/lib/puppet/ssl/private_keys/${puppet_server_fqdn_lowercase}.pem
         SSLCertificateChainFile /var/lib/puppet/ssl/ca/ca_crt.pem
         SSLCACertificateFile    /var/lib/puppet/ssl/ca/ca_crt.pem
         # If Apache complains about invalid signatures on the CRL, you can try disabling
@@ -801,6 +802,23 @@ function start_puppetdb () {
   fi
 }
 
+function pause_till_puppetdb_starts () {
+  timeout 60s bash -c '
+while : ; do
+ grep "Started SslSelectChannelConnector@" /var/log/puppetdb/puppetdb.log &>/dev/null && break
+ printf .
+ sleep 1
+done
+echo ""
+'
+  if [ $? -eq 124 ]; then
+    print_error "Raised Timeout waiting for puppetdb to listen"
+    exit 22
+  else
+    print_info "PuppetDB started successfully"
+  fi
+}
+
 ####
 ## Main
 ####
@@ -814,6 +832,7 @@ declare puppetdb_jvm_size
 declare postgresql_password
 declare puppet_server_hostname
 declare setup_puppet_cron_job
+declare wait_for_puppetdb
 
 function usage () {
   script=$0
@@ -827,6 +846,7 @@ Syntax
 -p: install and configure passenger which runs puppet master as a rack application inside apache
 -a: set up auto signing for the same clients belonging to same domain
 -j: set up cron job for running puppet agent every 30 minutes
+-w: wait till puppetdb starts
 -J: JVM Heap Size for puppetdb
 -P: postgresql password for puppetdb|postgres user
 -H: puppet server hostname (required for client setup)
@@ -892,6 +912,9 @@ function main () {
       j)
         setup_puppet_cron_job="true"
         ;;
+      w)
+        wait_for_puppetdb="true"
+        ;;
       J)
         puppetdb_jvm_size=$OPTARG
         ;;
@@ -938,6 +961,9 @@ function main () {
         install_puppetdb
         configure_puppetdb
         start_puppetdb
+        if [[ "$wait_for_puppetdb" = "true" ]]; then
+          pause_till_puppetdb_starts
+        fi
     fi
     test_puppet_run
   elif [[ "$puppet_client_setup" = "true" ]]; then
