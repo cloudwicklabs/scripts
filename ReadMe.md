@@ -90,6 +90,33 @@ Install puppet client:
 install_puppet.sh -c -H {puppet_server_hostname}
 ```
 
+Chef Installer (chef_install.sh)
+------------------------------------
+Script to install chef server/client and configure knife.
+
+###Usage:
+
+```
+curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/chef_install.sh
+chmod +x chef_install.sh
+./chef_install.sh -h
+```
+
+Sample help usage:
+
+```
+Syntax
+chef_install.sh -s -c -w -J {-Xmx512m|-Xmx256m} -H {cs_hostname} -h
+
+-s: chef server setup
+-c: chef client setup
+-w: Chef workstation setup
+-J: JVM Heap Size for solr
+-H: chef server ip (required for chef client setup)
+-h: show help
+```
+
+
 ###License and Authors
 
 Authors: [Ashrith](http://github.com/ashrithr)
