@@ -116,6 +116,72 @@ chef_install.sh -s -c -w -J {-Xmx512m|-Xmx256m} -H {cs_hostname} -h
 -h: show help
 ```
 
+Mongo Installer (mongo_install.sh)
+----------------------------------
+Script to install mongo in single/sharded/replicated mode with support for deploying mms-agent with munin hardware monitoring
+
+###Usage:
+
+```
+curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/mongo_install.sh
+chmod +x mongo_install.sh
+./mongo_install.sh -h
+```
+
+Sample help usage and examples:
+
+```
+Syntax
+mongo_install.sh OPTS
+
+where OPTS are:
+-l: start mongo router instance (load balancer)
+-d: configure single mongod instance
+-s: configure as shard server
+-c: configure mongo config server
+-m: install and configure mms agent
+-R: name of the replica set
+-S: master | slave replica set configuration
+-C: config DB (list of config servers)
+-M: replica set members (rs1:27018,rs2:27018,rs3:27018)
+-b: bind to eth0 ip address (default: listen on all interfaces)
+-I: initialize replica set with given members list (run this from replica primary)
+-A: specify the arbiter node while initializing replica set
+-K: mms api key
+-v: verbose output
+-h: show help
+
+Examples:
+Install mongo on a single machine:
+mongo_install.sh -d
+
+Install mongo on a cluster mode with 2 replica sets:
+1. Start mongo router instance
+  mongo_install.sh -l -C host1:27019,host2:27019,host3:27019
+2. Start mongo replica server master (s1r1.cw.com)
+  mongo_install.sh -s -R replA -S master
+3. Start mongo replica server slave (s1r2.cw.com)
+  mongo_install.sh -s -R replA -S slave
+4. Start mongo arbiter server (s1a1.cw.com)
+  mongo_install.sh -s -R replA -a
+5. Start mongo replica server master (s2r1.cw.com)
+  mongo_install.sh -s -R replB -S master
+6. Start mongo replica server slave (s2r2.cw.com)
+  mongo_install.sh -s -R replB -S slave
+7. Start mongo arbiter server (s2a1.cw.com)
+  mongo_install.sh -s -a -R replB
+8. Start config server1
+  mongo_install.sh -c
+9. Start config server2
+  mongo_install.sh -c
+10. Start config server3
+  mongo_install.sh -c
+11. Initialize replica set 1, run this from replica (replA) primary master
+  mongo_install.sh -I "s1r1.cw.com:27018,s1r2.cw.com:27018,s1a1.cw.com:27018" -A "s1a1.cw.com:27018"
+12. Initialize replica set 2, run this from replica (replB) primary master
+  mongo_install.sh -I "s2r1.cw.com:27018,s2r2.cw.com:27018,s2a1.cw.com:27018" -A "s2a1.cw.com:27018"
+
+```
 
 ###License and Authors
 

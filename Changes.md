@@ -11,3 +11,7 @@ puppet_installer
 * 0.1 - Initial Commit
 * 0.2 - Includes puppetdb support
 * 0.3 - Includes passenger support
+
+mongo_installer
+---------------
+* 0.1 - Inital Commit
