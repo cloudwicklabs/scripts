@@ -15,3 +15,7 @@ puppet_installer
 mongo_installer
 ---------------
 * 0.1 - Inital Commit
+
+chef_installer
+--------------
+* 0.1 - Initial Commit
