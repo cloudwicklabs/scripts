@@ -33,7 +33,6 @@ chef_environment="_default"
 chef_server_version="11.0.10-1"
 chef_client_version="11.8.2-1"
 chef_server_ssl_port="443"
-debug="true"
 
 ### !!! DONT CHANGE BEYOND THIS POINT. DOING SO MAY BREAK THE SCRIPT !!!
 
@@ -70,8 +69,9 @@ function print_banner () {
   _____/ /___  __  ______/ /      __(_)____/ /__
  / ___/ / __ \/ / / / __  / | /| / / / ___/ //_/
 / /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<   
-\___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}"
-    echo -e "\n* Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' for stdout and '${clr_cyan}${stderr_log}${clr_end}' for stderr output.\n"
+\___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}\n"
+
+  print_info "Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' and '${clr_cyan}${stderr_log}${clr_end}' for respective output."
 }
 
 function print_error () {
@@ -86,16 +86,20 @@ function print_info () {
   printf "$(date +%s) ${clr_green}[INFO] ${clr_end}$@\n"
 }
 
+function print_debug () {
+  if [[ $debug = "true" ]]; then
+    printf "$(date +%s) ${clr_cyan}[DEBUG] ${clr_end}$@\n"
+  fi
+}
+
 function execute () {
   local full_redirect="1>>$stdout_log 2>>$stderr_log"
   /bin/bash -c "$@ $full_redirect"
   ret=$?
-  if [[ $debug = "true" ]]; then
-    if [ $ret -ne 0 ]; then
-      print_warning "Executed command \'$@\', returned non-zero code: $ret"
-    else
-      print_info "Executed command \'$@\', returned successfully."
-    fi
+  if [ $ret -ne 0 ]; then
+    print_debug "Executed command \'$@\', returned non-zero code: ${clr_yellow}${ret}${clr_end}"
+  else
+    print_debug "Executed command \'$@\', returned successfully."
   fi
   return $ret
 }
@@ -108,7 +112,7 @@ function check_for_root () {
 }
 
 function get_system_info () {
-  print_info "Collecting system configuration..."
+  print_debug "Collecting system configuration..."
   
   os=`uname -s`
   if [[ "$os" = "SunOS" ]] ; then
@@ -120,14 +124,6 @@ function get_system_info () {
       os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
       if [[ $os_str =~ ubuntu ]]; then
         os="ubuntu"
-        if grep -q precise /etc/lsb-release; then
-          os_codename="precise"
-        elif grep -q lucid /etc/lsb-release; then
-          os_codename="lucid"
-        else
-          print_error "Sorry, only precise & lucid systems are supported by this script. Exiting."
-          exit 1
-        fi
       else
         print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
         exit 1        
@@ -166,12 +162,12 @@ function get_system_info () {
     package_manager="yum"
   elif [[ $os =~ ubuntu ]]; then
     package_manager="apt-get"
-  elif [[ $os =~ macosx ]]; then
-    package_manager="brew"
   else
     print_error "Unsupported package manager. Please contact support@cloudwicklabs.com."
     exit 1
   fi
+
+  print_debug "Detected OS: ${os}, Ver: ${os_version}, Arch: ${os_arch}"
 }
 
 ####
@@ -565,6 +561,7 @@ Syntax
 -w: Chef workstation setup
 -J: JVM Heap Size for solr
 -H: chef server ip (required for chef client setup)
+-v: verbose output
 -h: show help
 
 USAGE
@@ -617,7 +614,7 @@ function main () {
   trap "kill 0" SIGINT SIGTERM EXIT
 
   # parse command line options
-  while getopts J:H:scwh opts
+  while getopts J:H:scwvh opts
   do
     case $opts in
       s)
@@ -631,6 +628,9 @@ function main () {
         ;;
       H)
         chef_server_hostname=$OPTARG
+        ;;
+      v)
+        debug="true"
         ;;
       h)
         usage
