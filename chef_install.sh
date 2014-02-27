@@ -79,7 +79,7 @@ function print_error () {
 }
 
 function print_warning () {
-  printf "$(date +%s) ${clr_yellow}[WARNING] ${clr_end}$@\n"
+  printf "$(date +%s) ${clr_yellow}[WARN] ${clr_end}$@\n"
 }
 
 function print_info () {
