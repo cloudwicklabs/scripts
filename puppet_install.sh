@@ -7,7 +7,7 @@
 #               * postgresql (dependency for puppetdb)
 #               * autosigning for puppet clients belonging to same domain
 # Supported OS:: CentOS, Redhat, Ubuntu
-# Version: 0.3
+# Version: 0.4
 #
 # Copyright 2013, Cloudwick, Inc.
 #
@@ -56,10 +56,10 @@ stderr_log="/tmp/puppet-install.stderr"
 
 function print_banner () {
     echo -e "${clr_blue}
-        __                __         _      __  
+        __                __         _      __
   _____/ /___  __  ______/ /      __(_)____/ /__
  / ___/ / __ \/ / / / __  / | /| / / / ___/ //_/
-/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<   
+/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<
 \___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}\n"
 
   print_info "Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' and '${clr_cyan}${stderr_log}${clr_end}' for respective output."
@@ -104,22 +104,13 @@ function check_for_root () {
 
 function get_system_info () {
   print_debug "Collecting system configuration..."
-  
+
   os=`uname -s`
   if [[ "$os" = "SunOS" ]] ; then
     os="Solaris"
     os_arch=`uname -p`
   elif [[ "$os" = "Linux" ]] ; then
-    if [[ -f /etc/lsb-release ]] ; then
-      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
-      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
-      if [[ $os_str =~ ubuntu ]]; then
-        os="ubuntu"
-      else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
-        exit 1        
-      fi
-    else
+    if [[ -f /etc/redhat-release ]]; then
       os_str=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' | tr '[:upper:]' '[:lower:]' )
       os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
       if [[ $os_str =~ centos ]]; then
@@ -130,6 +121,26 @@ function get_system_info () {
         print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
         exit 1
       fi
+    elif [[ -f /etc/lsb-release ]] ; then
+      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
+      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
+      if [[ $os_str =~ ubuntu ]]; then
+        os="ubuntu"
+        if grep -q precise /etc/lsb-release; then
+          os_codename="precise"
+        elif grep -q lucid /etc/lsb-release; then
+          os_codename="lucid"
+        else
+          print_error "Sorry, only precise & lucid systems are supported by this script. Exiting."
+          exit 1
+        fi
+      else
+        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+        exit 1
+      fi
+    else
+      print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+      exit 1
     fi
     os=$( echo $os | sed -e "s/ *//g")
     os_arch=`uname -m`
@@ -177,7 +188,7 @@ function check_preqs () {
       if [[ $? -ne 0 ]]; then
         print_warning "Could not install $command. This may cause issues."
       fi
-    } 
+    }
   done
 }
 
@@ -194,7 +205,7 @@ function add_epel_repo () {
       execute "rpm -i epel.rpm"
       execute "rm -f epel.rpm"
     fi
-  fi  
+  fi
 }
 
 function add_puppetlabs_repo () {
@@ -207,7 +218,7 @@ function add_puppetlabs_repo () {
           execute "rpm -i http://yum.puppetlabs.com/el/5/products/$os_arch/puppetlabs-release-5-7.noarch.rpm"
         elif [[ $os_version -eq 6 ]]; then
           execute "rpm -i http://yum.puppetlabs.com/el/6/products/$os_arch/puppetlabs-release-6-7.noarch.rpm"
-        fi        
+        fi
         sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/puppetlabs.repo
       fi
       ;;
@@ -268,7 +279,7 @@ function check_if_postgres_is_installed () {
       print_error "$os is not supported yet."
       exit 1
       ;;
-  esac  
+  esac
 }
 
 function install_postgres () {
@@ -293,12 +304,12 @@ function install_postgres () {
       if [[ $? -ne 0 ]]; then
         print_error "Failed installing postgresql, stopping."
         exit 1
-      fi      
+      fi
       ;;
     *)
     print_error "$os is not yet supported"
     exit 1
-  esac  
+  esac
 }
 
 function configure_postgres () {
@@ -312,7 +323,7 @@ function configure_postgres () {
           -e "s|local *all *all .*|local    all         all                   trust|g" \
           -e "s|host *all *all *127.0.0.1/32 .*|host    all         all        127.0.0.1/32           trust|g" \
           -e "s|host *all *all *::1/128 .*|host    all         all        ::1/128           trust|g" \
-          -i $psql_config      
+          -i $psql_config
       execute "grep puppetdb $psql_config"
       if [[ $? -ne 0 ]]; then
         file_change="true"
@@ -322,7 +333,7 @@ function configure_postgres () {
       if [[ $? -ne 0 ]]; then
         file_change="true"
         echo "listen_addresses = '0.0.0.0'" >> $psql_data_conf
-      fi      
+      fi
       ;;
     ubuntu)
       local psql_config="/etc/postgresql/9.*/main/pg_hba.conf"
@@ -341,7 +352,7 @@ function configure_postgres () {
       if [[ $? -ne 0 ]]; then
         file_change="true"
         echo "listen_addresses = '0.0.0.0'" >> $psql_data_conf
-      fi      
+      fi
       ;;
     *)
     print_error "$os is not yet supported"
@@ -413,7 +424,7 @@ function install_puppet_server () {
       if [[ $? -ne 0 ]]; then
         print_error "Failed installing puppetmaster, stopping."
         exit 1
-      fi      
+      fi
       ;;
     *)
     print_error "$os is not yet supported"
@@ -452,7 +463,7 @@ function start_puppet_server () {
 
 function stop_puppet_server () {
   print_info "Stopping puppet master service..."
-  execute "puppet resource service puppetmaster ensure=stopped" 
+  execute "puppet resource service puppetmaster ensure=stopped"
 }
 
 function check_if_puppet_client_is_installed () {
@@ -485,7 +496,7 @@ function install_puppet_client () {
   if [[ $? -ne 0 ]]; then
     print_error "Failed installing puppet, stopping."
     exit 1
-  fi  
+  fi
 }
 
 function configure_puppet_client () {
@@ -547,7 +558,7 @@ function install_dependencies_for_passenger () {
       print_error "$os is not supported yet."
       exit 1
       ;;
-  esac  
+  esac
 }
 
 function install_passenger () {
@@ -571,7 +582,7 @@ function install_passenger () {
     ubuntu)
       execute "/usr/local/bin/passenger-install-apache2-module -a"
       ;;
-  esac    
+  esac
 }
 
 function configure_passenger () {
@@ -595,11 +606,11 @@ function configure_passenger () {
       ;;
   esac
   execute "grep ssl_client_header $puppet_conf"
-  if [[ $? -ne 0 ]]; then  
+  if [[ $? -ne 0 ]]; then
     cat >> $puppet_conf <<DELIM
 [master]
   ssl_client_header = SSL_CLIENT_S_DN
-  ssl_client_verify_header = SSL_CLIENT_VERIFY  
+  ssl_client_verify_header = SSL_CLIENT_VERIFY
 DELIM
   fi
   cat > $passenger_conf <<DELIM
@@ -697,7 +708,7 @@ function check_if_puppetdb_is_installed () {
       print_error "$os is not supported yet."
       exit 1
       ;;
-  esac  
+  esac
 }
 
 function install_puppetdb () {
@@ -766,7 +777,7 @@ DELIM
   if [[ $? -ne 0 ]]; then
     echo "  storeconfigs_backend = puppetdb" >> /etc/puppet/puppet.conf
   fi
-  
+
   # make PuppetDB the authoritative source for the inventory service.
   cat > /etc/puppet/routes.yaml <<\DELIM
 ---
@@ -876,7 +887,7 @@ function check_variables () {
     if [[ -z $postgresql_password ]]; then
       print_warning "Postgresql password for puppetdb user not set, default value of 'Change3E' will be used"
       postgresql_password="Change3E"
-    fi    
+    fi
   fi
 }
 
@@ -922,7 +933,7 @@ function main () {
         ;;
       h)
         usage
-        ;;        
+        ;;
       \?)
         usage
         ;;
