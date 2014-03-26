@@ -183,6 +183,30 @@ Install mongo on a cluster mode with 2 replica sets:
 
 ```
 
+Job Postings Fetcher (fetch_job_postings.rb)
+--------------------------------------------
+Script to pull job postings from dice and put them to google spread sheet
+
+###Usage:
+
+Download:
+
+```
+curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/fetch_job_postings.rb
+```
+
+Install ruby gem dependencies:
+
+```
+gem install json parallel google_drive --no-ri --no-rdoc
+```
+
+Usage:
+
+```
+ruby fetch_json_postings.rb -h
+```
+
 ###License and Authors
 
 Authors: [Ashrith](http://github.com/ashrithr)
