@@ -257,6 +257,6 @@ if __FILE__ == $0
     options.page_search_string
   ).run
 
-  worksheet = google.create_worksheet(Date.today.strftime('%A, %b %d'), spreadsheet, data.length, 5)
+  worksheet = google.create_worksheet(Date.today.strftime('%A, %b %d'), spreadsheet, data.length, 10)
   google.write_to_worksheet(worksheet, data)
 end
