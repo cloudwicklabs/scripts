@@ -59,11 +59,11 @@ class GoogleSpreadSheet
     if spreadsheet.worksheet_by_title(ws_name)
       puts "Worksheet #{ws_name} already exists"
       @ws_exists = true
-      return spreadsheet.worksheet_by_title(ws_name)
     else
       puts "Creating worksheet named: #{ws_name} in spreadsheet: #{spreadsheet.title}"
-      return spreadsheet.add_worksheet(ws_name, max_rows, max_cols)
+      spreadsheet.add_worksheet(ws_name, max_rows, max_cols)
     end
+    return spreadsheet.worksheet_by_title(ws_name)
   end
 
   # data = { "url" => { :title => '', :company => '', :location => '', :date => '' }, ... }
