@@ -203,8 +203,27 @@ gem install json parallel google_drive --no-ri --no-rdoc
 
 Usage:
 
+1. Encrypt the google password (entering the following command will ask for password
+  in hidden string format and also asks for a hash salt used to encrypt password):
+
+  ```
+  ruby fetch_job_postings.rb -e
+  ```
+
+2. Using the above encrypted password and salt you can pull the job postings from dice
+  and put them to google spreadsheet:
+
+  ```
+  ruby fetch_job_postings.rb --search java --age-of-postings 1 \
+    --traverse-depth 1 --page-search CON_CORP \
+    --spreadsheet-name job_postings_bot --username test@gmail.com \
+    --password [ENCRYPTED_PASSWORD] --hash [HASH_SALT]
+  ```
+
+For description on options:
+
 ```
-ruby fetch_json_postings.rb -h
+ruby fetch_job_postings.rb --help
 ```
 
 ###License and Authors
