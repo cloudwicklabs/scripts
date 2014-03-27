@@ -93,7 +93,8 @@ class GoogleSpreadSheet
         worksheet[row_position, 2] = cols[:title]
         worksheet[row_position, 3] = cols[:company]
         worksheet[row_position, 4] = cols[:location]
-        worksheet[row_position, 5] = url
+        worksheet[row_position, 5] = cols[:skills]
+        worksheet[row_position, 6] = url
         row_position += 1
       end
       worksheet.synchronize
@@ -184,13 +185,15 @@ class ProcessPostings
     result = json['resultItemList']
     Parallel.each(result, :in_threads => 50) do |rs|
       @mutex.synchronize { @processed += 1 }
-      if keep_posting?(process_request(rs['detailUrl']))
+      response_internal = process_request(rs['detailUrl'])
+      if keep_posting?(response_internal)
         @mutex.synchronize {
           @processed_data[rs['detailUrl']] = {
             :title => rs['jobTitle'],
             :company => rs['company'],
             :location => rs['location'],
-            :date => rs['date']
+            :date => rs['date'],
+            :skills => pull_skills(response_internal) || nil,
           }
         }
       end
@@ -210,6 +213,15 @@ class ProcessPostings
       end
     end
     return status
+  end
+
+  def pull_skills(response)
+    skills = response.body.scan(Regexp.new('^\s+<dt.*>Skills:<\/dt>\s+<dd.*>(.*)<\/dd>')).first
+    if skills.is_a?(Array)
+      return skills.join(',').gsub('&nbsp;', '')
+    else
+      'N/A'
+    end
   end
 
   def run
