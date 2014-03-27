@@ -105,6 +105,51 @@ class GoogleSpreadSheet
   end
 end
 
+class Encryptor
+  begin
+    require 'io/console' # > 1.9.3
+  rescue LoadError
+  end
+  require 'openssl'
+  require 'fileutils'
+  require 'base64'
+
+  CIPHER = 'aes-256-cbc' # AES256
+
+  def self.hash(plaintext)
+    OpenSSL::Digest::SHA512.new(plaintext).digest
+  end
+
+  if STDIN.respond_to?(:noecho)
+    def self.read_password(prompt = 'Password: ')
+      printf prompt
+      STDIN.noecho(&:gets).chomp
+    end
+  else
+    def self.read_password(prompt = 'Password: ')
+      `read -s -p "#{prompt}" password; echo $password`.chomp
+    end
+  end
+
+  # Encrypts or decrypts the data with the password hash as key
+  # NOTE: encryption exceptions do not get caught!
+  def self.encrypt(data, pwhash)
+    c = OpenSSL::Cipher.new CIPHER
+    c.encrypt
+    c.key = self.hash(pwhash)
+    encrypted = c.update(data) << c.final
+    Base64.encode64(encrypted).encode('utf-8')
+  end
+
+  def self.decrypt(encoded, pwhash)
+    c = OpenSSL::Cipher.new CIPHER
+    c.decrypt
+    c.key = self.hash(pwhash)
+    decoded = Base64.decode64(encoded.encode('ascii-8bit'))
+    c.update(decoded) << c.final
+  end
+end
+
 class ProcessPostings
   def initialize(base_url, search_string, age, pages_to_traverse, page_search)
     @traverse_depth     = pages_to_traverse.to_i
@@ -187,10 +232,11 @@ end
 if __FILE__ == $0
   options  = OpenStruct.new
   # defaults
+  options.encrypt = false
   options.age_of_postings = 1
   options.traverse_depth  = 1
   options.page_search_string = []
-  req_options = %w(search_string spreadsheet_name google_username google_password)
+  req_options = %w(search_string spreadsheet_name google_username google_password password_hash)
 
   optparse = OptionParser.new do |opts|
     opts.banner = "Usage: #{$PROGRAM_NAME} [options]"
@@ -219,11 +265,19 @@ if __FILE__ == $0
       options.google_username = u
     end
 
-    opts.on('-p', '--password PASSWORD', 'Password of the google account who to access the drive as') do |p|
+    opts.on('-p', '--password ENCRYPTED', 'Encrypted password of the google account who to access the drive as, to encrypt use `--encrypt`') do |p|
       options.google_password = p
     end
 
-    opts.on('-h', '--help', 'Show this message') do
+    opts.on('-e', '--encrypt', 'Wether to encrypt the password') do |e|
+      options.encrypt = true
+    end
+
+    opts.on('-h', '--hash PASSWORD_HASH', 'If the password is encrypted then provide salt hash') do |e|
+      options.password_hash = e
+    end
+
+    opts.on('--help', 'Show this message') do
       puts opts
       exit
     end
@@ -231,8 +285,21 @@ if __FILE__ == $0
 
   begin
     optparse.parse!
-    req_options.each do |req|
-      raise OptionParser::MissingArgument, req if options.send(req).nil?
+    if options.encrypt
+      pwd_to_encrypt = Encryptor.read_password("Enter your google drive password to encrypt: ")
+      puts
+      printf "Enter the password salt: "
+      pwd_salt = gets.chomp
+      puts
+      # encrypt the password and print out encrypted password
+      encrypted_password = Encryptor.encrypt(pwd_to_encrypt, pwd_salt)
+      puts "Encypted password: #{encrypted_password}"
+      puts "Salt: #{pwd_salt}"
+      exit 0
+    else
+      req_options.each do |req|
+        raise OptionParser::MissingArgument, req if options.send(req).nil?
+      end
     end
   rescue OptionParser::InvalidOption, OptionParser::MissingArgument
     puts $!.to_s
@@ -240,9 +307,8 @@ if __FILE__ == $0
     exit
   end
 
-  pp options
-
-  google = GoogleSpreadSheet.new(options.google_username, options.google_password)
+  pwd_decrypted = Encryptor.decrypt(options.google_password, options.password_hash)
+  google = GoogleSpreadSheet.new(options.google_username, pwd_decrypted)
   spreadsheet = google.get_spreadsheet(options.spreadsheet_name)
   unless spreadsheet
     puts "Failed to fetch specified spreadsheet, make sure #{options.google_username} has access to the spreadsheet specified"
