@@ -94,7 +94,8 @@ class GoogleSpreadSheet
         worksheet[row_position, 3] = cols[:company]
         worksheet[row_position, 4] = cols[:location]
         worksheet[row_position, 5] = cols[:skills]
-        worksheet[row_position, 6] = url
+        worksheet[row_position, 6] = cols[:email]
+        worksheet[row_position, 7] = url
         row_position += 1
       end
       worksheet.synchronize
@@ -194,6 +195,7 @@ class ProcessPostings
             :location => rs['location'],
             :date => rs['date'],
             :skills => pull_skills(response_internal) || nil,
+            :email  => pull_email(response_internal) || nil
           }
         }
       end
@@ -222,6 +224,22 @@ class ProcessPostings
     else
       'N/A'
     end
+  end
+
+  def pull_email(response)
+    emails = response.body.scan(Regexp.new('\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}\b')).uniq - ['email@domain.com']
+    if emails.is_a?(Array)
+      return emails.join(',')
+    else
+      'N/A'
+    end
+  end
+
+  def pull_phone(response)
+    # TEN_DIGITS = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/
+    # SEVEN_DIGITS = /^(?:\(?([0-9]{3})\)?[-. ]?)?([0-9]{3})[-. ]?([0-9]{4})$/
+    # LEADING_1 = /^(?:\+?1[-. ]?)?\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/
+    phns = response.body.scan(Regexp.new('/^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/'))
   end
 
   def run
@@ -338,3 +356,4 @@ if __FILE__ == $0
   worksheet = google.create_worksheet(Date.today.strftime('%A, %b %d'), spreadsheet, data.length, 10)
   google.write_to_worksheet(worksheet, data)
 end
+
