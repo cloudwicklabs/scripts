@@ -65,10 +65,10 @@ stderr_log="/tmp/$(basename $0).stderr"
 
 function print_banner () {
     echo -e "${clr_blue}
-        __                __         _      __  
+        __                __         _      __
   _____/ /___  __  ______/ /      __(_)____/ /__
  / ___/ / __ \/ / / / __  / | /| / / / ___/ //_/
-/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<   
+/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<
 \___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}\n"
 
   print_info "Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' and '${clr_cyan}${stderr_log}${clr_end}' for respective output."
@@ -113,22 +113,13 @@ function check_for_root () {
 
 function get_system_info () {
   print_debug "Collecting system configuration..."
-  
+
   os=`uname -s`
   if [[ "$os" = "SunOS" ]] ; then
     os="Solaris"
     os_arch=`uname -p`
   elif [[ "$os" = "Linux" ]] ; then
-    if [[ -f /etc/lsb-release ]] ; then
-      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
-      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
-      if [[ $os_str =~ ubuntu ]]; then
-        os="ubuntu"
-      else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
-        exit 1        
-      fi
-    else
+    if [[ -f /etc/redhat-release ]]; then
       os_str=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' | tr '[:upper:]' '[:lower:]' )
       os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
       if [[ $os_str =~ centos ]]; then
@@ -139,6 +130,26 @@ function get_system_info () {
         print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
         exit 1
       fi
+    elif [[ -f /etc/lsb-release ]] ; then
+      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
+      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
+      if [[ $os_str =~ ubuntu ]]; then
+        os="ubuntu"
+        if grep -q precise /etc/lsb-release; then
+          os_codename="precise"
+        elif grep -q lucid /etc/lsb-release; then
+          os_codename="lucid"
+        else
+          print_error "Sorry, only precise & lucid systems are supported by this script. Exiting."
+          exit 1
+        fi
+      else
+        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+        exit 1
+      fi
+    else
+      print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+      exit 1
     fi
     os=$( echo $os | sed -e "s/ *//g")
     os_arch=`uname -m`
@@ -186,7 +197,7 @@ function check_preqs () {
       if [[ $? -ne 0 ]]; then
         print_warning "Could not install $command. This may cause issues."
       fi
-    } 
+    }
   done
 }
 
@@ -211,7 +222,7 @@ baseurl=http://downloads-distro.mongodb.org/repo/redhat/os/i686/
 gpgcheck=0
 enabled=1
 EOF
-        fi          
+        fi
       fi
       ;;
     ubuntu)
@@ -244,7 +255,7 @@ function add_epel_repo () {
       execute "rpm -i epel.rpm"
       execute "rm -f epel.rpm"
     fi
-  fi  
+  fi
 }
 
 function stop_iptables () {
@@ -350,7 +361,7 @@ logappend=true
 fork=true
 
 #override port
-port=27017  
+port=27017
 EOF
   elif [[ $mongo_shard_server ]]; then
     print_info "Configuring shard server with replica set ${mongo_replica_set_name}..."
@@ -402,7 +413,7 @@ port=27019
 dbpath=${mongo_data_dir}
 EOF
   fi
-  
+
   grep --quiet 'dbpath' ${mongo_config}
   if [[ $? -ne 0 ]]; then
     printf "\ndbpath=${mongo_data_dir}\n" >> $mongo_config
@@ -437,7 +448,7 @@ function initialize_replica_set () {
     if [[ $validate_members =~ invalid ]]; then
       print_error "Invalid replica members format, possible format: HOST|BIND_IP:PORT ex: r1.cw.com:27018,r2.cw.com:27018,r3.cw.com:27018"
       exit 1
-    fi  
+    fi
   if [[ ! -z $mongo_arbiter_server ]]; then
     local validate_arbiter=$(ruby -e "ARGV[0].split(',').each { |a| puts 'invalid' unless a =~ /.*?:/ }" $mongo_arbiter_server)
     if [[ $validate_arbiter =~ invalid ]]; then
@@ -485,7 +496,7 @@ function mongo_mms_dependencies () {
       execute "$package_manager install -y python python-setuptools build-essential python-dev"
       if [[ $? -ne 0 ]]; then
         print_error "Failed installing dependencies for mms agent, this might cause mms intallation to fail"
-      fi      
+      fi
       ;;
     *)
     print_error "$os is not yet supported"
@@ -605,7 +616,6 @@ Syntax
 
 where OPTS are:
 -l: start mongo router instance (load balancer)
--d: configure single mongod instance
 -s: configure as shard server
 -c: configure mongo config server
 -m: install and configure mms agent
@@ -622,11 +632,11 @@ where OPTS are:
 
 Examples:
 Install mongo on a single machine:
-`basename $script` -d
+`basename $script`
 
 Install mongo on a cluster mode with 2 replica sets:
-1. Start mongo router instance 
-  `basename $script` -l -C host1:27019,host2:27019,host3:27019 
+1. Start mongo router instance
+  `basename $script` -l -C host1:27019,host2:27019,host3:27019
 2. Start mongo replica server master (s1r1.cw.com)
   `basename $script` -s -R replA -S master
 3. Start mongo replica server slave (s1r2.cw.com)
@@ -735,7 +745,7 @@ function main () {
         ;;
       h)
         usage
-        ;;        
+        ;;
       \?)
         usage
         ;;
