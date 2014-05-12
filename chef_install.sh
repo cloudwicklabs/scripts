@@ -65,10 +65,10 @@ stderr_log="/tmp/$(basename $0).stderr"
 
 function print_banner () {
     echo -e "${clr_blue}
-        __                __         _      __  
+        __                __         _      __
   _____/ /___  __  ______/ /      __(_)____/ /__
  / ___/ / __ \/ / / / __  / | /| / / / ___/ //_/
-/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<   
+/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<
 \___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}\n"
 
   print_info "Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' and '${clr_cyan}${stderr_log}${clr_end}' for respective output."
@@ -113,7 +113,7 @@ function check_for_root () {
 
 function get_system_info () {
   print_debug "Collecting system configuration..."
-  
+
   os=`uname -s`
   if [[ "$os" = "SunOS" ]] ; then
     os="Solaris"
@@ -125,18 +125,18 @@ function get_system_info () {
       if [[ $os_str =~ ubuntu ]]; then
         os="ubuntu"
       else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
-        exit 1        
+        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
+        exit 1
       fi
     else
       os_str=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' | tr '[:upper:]' '[:lower:]' )
       os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
       if [[ $os_str =~ centos ]]; then
         os="centos"
-      elif [[ $os_str =~ redhat ]]; then
+      elif [[ $os_str =~ red ]]; then
         os="redhat"
       else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
         exit 1
       fi
     fi
@@ -186,7 +186,7 @@ function check_preqs () {
       if [[ $? -ne 0 ]]; then
         print_warning "Could not install $command. This may cause issues."
       fi
-    } 
+    }
   done
 }
 
@@ -203,7 +203,7 @@ function add_epel_repo () {
       execute "rpm -i epel.rpm"
       execute "rm -f epel.rpm"
     fi
-  fi  
+  fi
 }
 
 function add_opscode_repo () {
@@ -230,7 +230,7 @@ EOFYUM
       if [[ ! -f /etc/apt/sources.list.d/opscode.list ]]; then
         print_info "Adding puppetlabs repo to apt sources list"
         cat > /etc/apt/sources.list.d/opscode.list <<EOFAPT
-deb http://apt.opscode.com/ ${os_codename}-0.10 main        
+deb http://apt.opscode.com/ ${os_codename}-0.10 main
 EOFAPT
         [[ ! -d /etc/apt/trusted.gpg.d ]] && mkdir -p /etc/apt/trusted.gpg.d
         execute "gpg --keyserver keys.gnupg.net --recv-keys 83EF826A"
@@ -324,7 +324,7 @@ function download_chef_server_package () {
     *)
     print_error "$os is not yet supported"
     exit 1
-  esac  
+  esac
 }
 
 function install_chef_server () {
@@ -337,7 +337,7 @@ function install_chef_server () {
   if [[ "xx86_64" != "x${os_arch}" ]]; then
     print_error "Chef server packages are only available for x86_64. Stopping."
     exit 1
-  fi  
+  fi
   download_chef_server_package
   print_info "Installing chef-server package from $chef_server_package_path"
   case "$os" in
@@ -363,13 +363,13 @@ function install_chef_server () {
       print_error "$os is not supported yet."
       exit 1
       ;;
-  esac   
+  esac
 }
 
 function configure_chef_server () {
   local primary_net=$(ip route list match 0.0.0.0 | awk 'NR==1 {print $5}')
   local primary_net_ip=$(ip addr show dev ${PRIMARY_INTERFACE} | awk 'NR==3 {print $2}' | cut -d '/' -f1)
-  local chef_url="https://${primary_net_ip}:${chef_server_ssl_port}"  
+  local chef_url="https://${primary_net_ip}:${chef_server_ssl_port}"
   print_info "Configuring chef-server..."
   if [[ ! -e "/etc/chef-server/chef-server.rb" ]]; then
     [[ ! -d /etc/chef-server ]] && mkdir -p /etc/chef-server
@@ -406,7 +406,7 @@ function test_chef_server () {
   if [[ $? -ne 0 ]]; then
     print_error "chef-server is not running as expected, stopping."
     exit 1
-  fi  
+  fi
 }
 
 function check_if_chef_server_is_running () {
@@ -428,7 +428,7 @@ function safe_configure_chef_server () {
     if [[ $? -ne 0 ]]; then
       print_error "Failed restarting chef-server service(s), stopping."
       exit 1
-    fi    
+    fi
     test_chef_server
   else
     print_info "Chef server is running as expected, skipping start step."
@@ -453,7 +453,7 @@ function setup_admin_user () {
         print_error "$os is not supported yet."
         exit 1
         ;;
-    esac    
+    esac
   fi
 }
 
@@ -504,7 +504,7 @@ function install_chef_client () {
   if [[ $? -ne 0 ]]; then
     print_error "Failed installing chef agent, stopping."
     exit 1
-  fi  
+  fi
 }
 
 function configure_chef_client () {
@@ -517,19 +517,19 @@ function configure_chef_client () {
     print_info "Trying ssh to get chef validation private key..."
     execute "scp $chef_server_ip:/etc/chef-server/chef-validator.pem /tmp/validation.pem"
     if [[ $? -ne 0 ]]; then
-      print_warning "Cannot scp 'chef-validator.pem' from chef-server to this machine. 
-      Copy the 'validation.pem' from server located at '/etc/chef-server/chef-validator.pem' 
+      print_warning "Cannot scp 'chef-validator.pem' from chef-server to this machine.
+      Copy the 'validation.pem' from server located at '/etc/chef-server/chef-validator.pem'
       to the client being configured to path '/etc/chef/validation.pem'"
     else
       [[ ! -d /etc/chef ]] && execute "mkdir -p /etc/chef"
       execute "cp /tmp/validation.pem /etc/chef/validation.pem"
-    fi    
+    fi
   fi
   cat > /etc/chef/client.rb <<EOF2
 Ohai::Config[:disabled_plugins] = ["passwd"]
 
 chef_server_url "${chef_url}"
-chef_environment "${environment}"  
+chef_environment "${environment}"
 EOF2
 
 cat <<EOF2 > /etc/chef/knife.rb
@@ -590,7 +590,7 @@ function check_variables () {
   if [[ -z $postgresql_password ]]; then
     postgresql_password=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c ${1:-10} | xargs)
     print_warning "'postgresql_password' for chef-server not set, defaulting to ${postgresql_password}"
-  fi  
+  fi
   if [[ "$chef_client_setup" = "true" ]]; then
     if [[ -z $chef_server_hostname ]]; then
       print_error "Option chef client setup (-c) requires to pass chef server hostname using (-H)"
@@ -634,7 +634,7 @@ function main () {
         ;;
       h)
         usage
-        ;;        
+        ;;
       \?)
         usage
         ;;

@@ -118,7 +118,7 @@ function get_system_info () {
       elif [[ $os_str =~ red ]]; then
         os="redhat"
       else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
         exit 1
       fi
     elif [[ -f /etc/lsb-release ]] ; then
@@ -135,11 +135,11 @@ function get_system_info () {
           exit 1
         fi
       else
-        print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
         exit 1
       fi
     else
-      print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
+      print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
       exit 1
     fi
     os=$( echo $os | sed -e "s/ *//g")
