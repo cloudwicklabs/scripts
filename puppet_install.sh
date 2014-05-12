@@ -115,7 +115,7 @@ function get_system_info () {
       os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
       if [[ $os_str =~ centos ]]; then
         os="centos"
-      elif [[ $os_str =~ redhat ]]; then
+      elif [[ $os_str =~ red ]]; then
         os="redhat"
       else
         print_error "OS: $os_str is not yet supported, contanct support@cloudwicklabs.com"
