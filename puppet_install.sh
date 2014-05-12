@@ -667,7 +667,7 @@ DELIM
   if [[ ! -d /usr/share/puppet/rack/puppetmasterd ]]; then
     execute "mkdir -p /usr/share/puppet/rack/puppetmasterd/{public,tmp}"
     if [[ ! -f /usr/share/puppet/rack/puppetmasterd/config.ru ]]; then
-      execute "cd /usr/share/puppet/rack/puppetmasterd/ && curl -O https://raw.github.com/puppetlabs/puppet/master/ext/rack/config.ru"
+      execute "cd /usr/share/puppet/rack/puppetmasterd/ && curl -O https://raw.githubusercontent.com/puppetlabs/puppet/master/ext/rack/config.ru"
       execute "chown puppet:puppet /usr/share/puppet/rack/puppetmasterd/config.ru"
     fi
   fi
