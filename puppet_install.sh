@@ -506,6 +506,7 @@ function configure_puppet_client () {
   logdir = /var/log/puppet
   rundir = /var/run/puppet
   ssldir = \$vardir/classes.txt
+  configtimeout = 600
 [agent]
   classdir = \$vardir/classes.txt
   localconfig = \$vardir/localconfig
