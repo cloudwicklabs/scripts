@@ -215,9 +215,9 @@ function add_puppetlabs_repo () {
       if [[ ! -f /etc/yum.repos.d/puppetlabs.repo ]]; then
         print_info "Adding puppetlabs repo to yum repositories list..."
         if [[ $os_version -eq 5 ]]; then
-          execute "rpm -i http://yum.puppetlabs.com/el/5/products/$os_arch/puppetlabs-release-5-7.noarch.rpm"
+          execute "rpm -i http://yum.puppetlabs.com/el/5/products/$os_arch/puppetlabs-release-5-10.noarch.rpm"
         elif [[ $os_version -eq 6 ]]; then
-          execute "rpm -i http://yum.puppetlabs.com/el/6/products/$os_arch/puppetlabs-release-6-7.noarch.rpm"
+          execute "rpm -i http://yum.puppetlabs.com/el/6/products/$os_arch/puppetlabs-release-6-10.noarch.rpm"
         fi
         sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.repos.d/puppetlabs.repo
       fi
