@@ -183,6 +183,41 @@ Install mongo on a cluster mode with 2 replica sets:
 
 ```
 
+YARN Configuration Tuner (mr2_generator.rb)
+-------------------------------------------
+This program will generate recommended YARN MR2 configuration properties
+
+###Download:
+
+```
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/mr2_generator.rb
+```
+
+###Usage:
+
+```
+Usage: mr2_generator.rb [options]
+    -c, --cores INT                  Specify number of cores on each slave node
+    -r, --ram INT                    Specify RAM in GB on each slave node
+    -d, --disks INT                  Specify number of disks on each slave node
+    -h, --hbase                      Wether HBase is part of the cluster
+        --help                       Show this message
+```
+
+Examples Invocations:
+
+Assuming your node manager's have 12 cores, 128 GB RAM and 12 spindles:
+
+```
+ruby mr2_generator.rb --cores 12 --disks 12 --ram 128
+```
+
+If your cluster also has HBase collocated with node managers then:
+
+```
+ruby mr2_generator.rb --cores 12 --disks 12 --ram 128 --hbase
+```
+
 Job Postings Fetcher (fetch_job_postings.rb)
 --------------------------------------------
 Script to pull job postings from dice and put them to google spread sheet
