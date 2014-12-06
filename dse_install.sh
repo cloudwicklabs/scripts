@@ -2,7 +2,7 @@
 #
 # Author:: Ashrith Mekala (<ashrith@cloudwick.com>)
 # Description:: Script to install DSE Cassandra
-# Version:: 0.2
+# Version:: 0.3
 # Supported OS:: Redhat/CentOS (5 & 6), Ubuntu (precise & lucid)
 #
 # Copyright 2013, Cloudwick, Inc.
@@ -31,14 +31,17 @@ cassandra_data_dirs=( "/cassandra/data" )
 cassandra_commit_log_dir="/cassandra/commitlog"
 cassandra_saved_caches_dir="/cassandra/saved_caches"
 
+# where spark stores (caches) rdd's, export SPARK_RDD_DIR="/var/lib/spark/rdd"
+spark_rdd_dirs="/var/lib/spark/rdd"
+
 # name of the cluster
 cassandra_cluster_name="Test Cluster"
 
 ####
 ## Configuration Variables (change these, only if you know what you are doing)
 ####
-# dse version to install
-dse_version="4.0.2"
+# dse version to install, http://www.datastax.com/download/enterprise/versions
+dse_version="4.6.0"
 
 #####
 ## !!! DONT CHANGE BEYOND THIS POINT. DOING SO MAY BREAK THE SCRIPT !!!
@@ -67,16 +70,19 @@ clr_end="\x1b[0m"
 stdout_log="/tmp/$(basename $0).stdout"
 stderr_log="/tmp/$(basename $0).stderr"
 
+# pre-req commands, will be installed if not already present
+pre_req_cmds=( "curl" "vim" )
+
 ####
 ## Utility functions
 ####
 
 function print_banner () {
     echo -e "${clr_blue}
-        __                __         _      __  
+        __                __         _      __
   _____/ /___  __  ______/ /      __(_)____/ /__
  / ___/ / __ \/ / / / __  / | /| / / / ___/ //_/
-/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<   
+/ /__/ / /_/ / /_/ / /_/ /| |/ |/ / / /__/ ,<
 \___/_/\____/\__,_/\__,_/ |__/|__/_/\___/_/|_| ${clr_green} Cloudwick Labs.  ${clr_end}\n"
 
   print_info "Logging enabled, check '${clr_cyan}${stdout_log}${clr_end}' and '${clr_cyan}${stderr_log}${clr_end}' for respective output."
@@ -197,15 +203,16 @@ function check_preqs () {
   check_for_root
   print_info "Checking your system prerequisites..."
 
-  for command in curl vim; do
+  # Install required commands (if not found)
+  for command in "${pre_req_cmds[@]}"; do
     type -P $command &> /dev/null || {
       print_warning "Command $command not found"
       print_info "Attempting to install $command..."
-      execute "${package_manager} -y install $command" # brew does not have -y
+      execute "${package_manager} -y install $command"
       if [[ $? -ne 0 ]]; then
         print_warning "Could not install $command. This may cause issues."
       fi
-    } 
+    }
   done
 }
 
@@ -217,7 +224,7 @@ function add_datastax_repo () {
         cat > /etc/yum.repos.d/datastax.repo <<EOF
 [datastax]
 name=DataStax Repo for Apache Cassandra
-baseurl=http://$datastax_user:$datastax_password@rpm.datastax.com/enterprise
+baseurl=http://${datastax_user}:${datastax_password}@rpm.datastax.com/enterprise
 enabled=1
 gpgcheck=0
 EOF
@@ -226,11 +233,11 @@ EOF
     ubuntu)
       if [[ ! -f /etc/apt/sources.list.d/datastax.sources.list ]]; then
         print_info "Adding datastax repo to apt sources list"
-        execute "echo \"deb http://$datastax_user:$datastax_password@debian.datastax.com/enterprise stable main\" | tee -a /etc/apt/sources.list.d/datastax.sources.list"
+        execute "echo \"deb http://${datastax_user}:${datastax_password}@debian.datastax.com/enterprise stable main\" | tee -a /etc/apt/sources.list.d/datastax.sources.list"
         print_info "Adding datastax repo to apt trusted list"
         execute "curl -sL https://debian.datastax.com/debian/repo_key | sudo apt-key add -"
         print_info "Refreshing apt packages list..."
-        execute "apt-get update"
+        execute "sudo apt-get update"
       fi
       ;;
     *)
@@ -240,19 +247,32 @@ EOF
   esac
 }
 
-function install_jdk () {
+function install_oracle_jdk () {
   cd /opt
-  if [[ ! -d /opt/jdk1.7.0_25 ]]; then
-    print_info "Installing JDK..."
-    execute "curl -O https://dl.dropboxusercontent.com/u/5756075/jdk1.7.0_25.tar.gz"
-    execute "tar xzf jdk1.7.0_25.tar.gz"
-    execute "rm -f jdk1.7.0_25.tar.gz"
-    execute "ln -s jdk1.7.0_25 java"
+  if [[ $os_arch == "x86_64" ]]; then
+    local download_url="http://download.oracle.com/otn-pub/java/jdk/7u45-b18/jdk-7u45-linux-x64.tar.gz"
+  else
+    local download_url="http://download.oracle.com/otn-pub/java/jdk/7u45-b18/jdk-7u45-linux-i586.tar.gz"
+  fi
+  local download_file=$(echo $download_url | awk -F'/' '{print $NF}')
+  local download_dir="jdk1.7.0_45"
+
+  if [[ ! -d $download_dir ]]; then
+    print_info "Attempting to download JDK ..."
+    execute "wget --no-check-certificate --no-cookies --header \"Cookie: oraclelicense=accept-securebackup-cookie\" ${download_url} -O ${download_file}"
+    if [[ $? -eq 0 ]]; then
+      print_info "Sucessfully downloaded Oracle JDK."
+      execute "tar xzf $download_file"
+      execute "ln -s $download_dir java"
+    else
+      echo "Failed downloading JAVA!"
+      exit 1
+    fi
   fi
 }
 
 function configure_jdk () {
-  install_jdk
+  install_oracle_jdk
   local java_profile="/etc/profile.d/java_home.sh"
   if [[ ! -f $java_profile ]]; then
     print_info "Configuring java home and path variables"
@@ -261,6 +281,7 @@ export JAVA_HOME=/opt/java
 export PATH=$JAVA_HOME/bin:$PATH
 export JRE_HOME=/opt/java
 EOF
+    source $java_profile
   elif [[ ! -x $java_profile ]]; then
     chmod +x $java_profile && source $java_profile
   else
@@ -273,6 +294,7 @@ function stop_iptables () {
     centos|redhat)
       print_info "Stopping ip tables..."
       execute "service iptables stop"
+      execute "chkconfig iptables off"
       ;;
     ubuntu)
       print_info "Disabling ufw..."
@@ -329,14 +351,14 @@ function install_dse () {
       ;;
     ubuntu)
       execute "$package_manager install -y dse-full=$dse_version-1 dse=$dse_version-1 dse-hive=$dse_version-1 \
-        dse-pig=$dse_version-1 dse-demos=$dse_version-1 dse-libsolr=$dse_version-1 dse-libtomcat=$dse_version-1 \
-        dse-libsqoop=$dse_version-1 dse-liblog4j=$dse_version-1 dse-libmahout=$dse_version-1 \
+        dse-pig=$dse_version-1 dse-demos=$dse_version-1 dse-libsolr=$dse_version-1 dse-libspark=$dse_version-1 \
+        dse-libtomcat=$dse_version-1 dse-libsqoop=$dse_version-1 dse-liblog4j=$dse_version-1 dse-libmahout=$dse_version-1 \
         dse-libhadoop-native=$dse_version-1 dse-libcassandra=$dse_version-1 dse-libhive=$dse_version-1 \
         dse-libpig=$dse_version-1 dse-libhadoop=$dse_version-1"
       if [[ $? -ne 0 ]]; then
         print_error "Failed installing dse, stopping."
         exit 1
-      fi      
+      fi
       ;;
     *)
     print_error "$os is not yet supported"
@@ -370,15 +392,22 @@ function find_broadcast_address () {
 function configure_dse () {
   local cassandra_env="/etc/dse/cassandra/cassandra-env.sh"
   local cassandra_config="/etc/dse/cassandra/cassandra.yaml"
+  local cassandra_default="/etc/default/dse"
   local eth0_ip_address=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | grep 'Bcast' | awk '{print $1}')
 
   print_info "Configuring basic dse cassandra..."
-  # force cassandra to use jdk installed by this script
-  grep --quiet JAVA_HOME=/opt/java $cassandra_env
+  # force cassandra daemon to use jdk installed by this script
+  # grep --quiet JAVA_HOME=/opt/java $cassandra_env
+  # if [[ $? -ne 0 ]]; then
+  #   execute "sed -i '16i\JAVA_HOME=/opt/java' $cassandra_env"
+  #   execute "sed -i '17i\JAVA=\$JAVA_HOME/bin/java' $cassandra_env"
+  # fi
+  grep --quiet JAVA_HOME=/opt/java $cassandra_default
   if [[ $? -ne 0 ]]; then
-    execute "sed -i '16i\JAVA_HOME=/opt/java' $cassandra_env"
-    execute "sed -i '17i\JAVA=\$JAVA_HOME/bin/java' $cassandra_env"
+    execute "echo 'JAVA_HOME=/opt/java' >> $cassandra_default"
   fi
+  # Set the cluster name
+  execute "sed -i 's/cluster_name:.*/cluster_name: \"$cassandra_cluster_name\"/g' $cassandra_config"
   # confifure cassandra seed nodes
   if [[ -n $cassandra_seeds ]]; then
     execute "sed -i 's/          - seeds:.*/          - seeds: \"$cassandra_seeds\"/g' $cassandra_config"
@@ -408,7 +437,7 @@ function configure_dse () {
 
   execute "sed -i 's/# num_tokens: 256/num_tokens: 256/g' $cassandra_config"
   execute "sed -i 's/listen_address: localhost/listen_address: ${eth0_ip_address}/g' $cassandra_config"
-  execute "sed -i 's/rpc_address: localhost/rpc_address: 0.0.0.0/g' $cassandra_config  "
+  execute "sed -i 's/rpc_address: localhost/rpc_address: 0.0.0.0/g' $cassandra_config"
   if [[ "$increase_defaults" = "true" ]]; then
     print_info "Bumping up the defaults and timeouts for finetuning cassandra"
     execute "sed -i 's/write_request_timeout_in_ms:.*/write_request_timeout_in_ms: 100000/g' $cassandra_config"
@@ -426,11 +455,11 @@ function configure_dse_dc () {
   local rack_name=${2:-RAC1}
 
   # static params
-  local dse_config="/etc/dse/dse.yaml"
+  local cassandra_config="/etc/dse/cassandra/cassandra.yaml"
   local dse_dc_config="/etc/dse/cassandra/cassandra-rackdc.properties"
 
   print_info "Configuring dse datacenter replication..."
-  execute "sed -i 's/delegated_snitch:.*/delegated_snitch: org.apache.cassandra.locator.GossipingPropertyFileSnitch/g' $dse_config"
+  execute "sed -i 's/endpoint_snitch:.*/endpoint_snitch: GossipingPropertyFileSnitch/g' $cassandra_config"
   execute "sed -i 's/dc=.*/dc=${datacenter_name}/g' $dse_dc_config"
   execute "sed -i 's/rack=.*/rack=${rack_name}/g' $dse_dc_config"
 }
@@ -456,12 +485,46 @@ function configure_dse_heap () {
   execute "sed -i s/#HEAP_NEWSIZE=.*/HEAP_NEWSIZE=\"${heap_newsize}\"/g $cassandra_env"
 }
 
+function configure_dse_limits () {
+  if [[ ! -f /etc/security/limits.d/cassandra.conf ]]; then
+    print_info "Updating limits for open files, max processes, memlock's"
+    cat > /etc/security/limits.d/cassandra.conf <<LIMITS
+cassandra - memlock unlimited
+cassandra - nofile 100000
+cassandra - nproc 32768
+cassandra - as unlimited
+LIMITS
+    # reload
+    execute "sysctl -p"
+  fi
+}
+
+function configure_spark_memory () {
+  local worker_cores=${1:-4}
+  local worker_memory=${2:-4G}
+  local spark_env="/etc/dse/spark/spark-env.sh"
+
+  print_info "Configuring spark worker memory"
+  execute "sed -s s/# export SPARK_WORKER_MEMORY=2048m/export SPARK_WORKER_MEMORY=$worker_memory/g $spark_env"
+  execute "sed -s s/# export SPARK_WORKER_CORES=4/export SPARK_WORKER_CORES=$worker_cores/g $spark_env"
+}
+
 function enable_solr () {
   execute "sed -i 's/SOLR_ENABLED=0/SOLR_ENABLED=1/g' /etc/default/dse"
 }
 
 function enable_hadoop () {
   execute "sed -i 's/HADOOP_ENABLED=0/HADOOP_ENABLED=1/g' /etc/default/dse"
+}
+
+function enable_spark () {
+  local spark_env="/etc/dse/spark/spark-env.sh"
+  execute "sed -i 's/SPARK_ENABLED=0/SPARK_ENABLED=1/g' /etc/default/dse"
+  if [[ ! -d $spark_rdd_dirs ]]; then
+    execute "mkdir -p $spark_rdd_dirs"
+    execute "chown -R cassandra:cassandra $spark_rdd_dirs"
+  fi
+  execute "sed -i 's/export SPARK_RDD_DIR=.*/export SPARK_RDD_DIR=\"${spark_rdd_dirs}\"/g' $spark_env"
 }
 
 function start_dse () {
@@ -495,30 +558,41 @@ declare dse_datacenter_name
 declare dse_rack_name
 declare force_restart
 declare increase_defaults
+declare spark_worker_cores
+declare spark_worker_memory
+declare spark_enabled
 
 function usage () {
   script=$0
   cat <<USAGE
+Usage:
+-----
 Syntax
 `basename ${script}` -s -a -d -B [IPv4] -j -J {512M|1G} -N {200M|1G} -h
 
--s: start dse-solr on this machine
--a: start dse-hadoop analytics on this machine
--d: configure datacenter replication
--j: configure cassandra jvm heap size
--b: attempt to find the broadcast address (use this for virtual instances like aws)
--r: force restart the dse daemon
--i: increase timeout's and default's for write request, read request, rpc request, concurrent writes, memtable flush writes
--S: seeds list to use (example: s1.ex.com,s2.ex.com)
 -B: broadcast address to use
+-C: number spark worker cores to use
+-D: datacenter name to use (default: DC1)
 -J: cassandra jvm size (default: 4G)
 -N: cassandra jvm heap new generation size (default: 800M)
--D: datacenter name to use (default: DC1)
 -R: rack name to use (default: RAC1)
+-S: seeds list to use (example: s1.ex.com,s2.ex.com)
+-W: amount of spark worker memory
+
+-a: start dse-hadoop analytics on this machine
+-b: attempt to find the broadcast address (use this for virtual instances like aws)
+-c: start dse-spark on this machine
+-d: configure datacenter replication
+-i: increase timeout's and default's for write request, read request, rpc request, concurrent writes, memtable flush writes
+-j: configure cassandra jvm heap size
+-r: force restart the dse daemon
+-s: start dse-solr on this machine
+
 -v: verbose output
 -h: show help
 
 Examples:
+--------
 Install dse cassandra on a single machine:
 `basename $script`
 
@@ -527,6 +601,9 @@ Install dse on a cluster with seeds list:
 
 Install dse on a cluster with seeds list, configure jvm heap sizes:
 `basename $script` -S "s1.ex.com,s2.ex.com" -j -J 8G -N 1G
+
+Install dse on a cluster with Spark enabled and custom worker memory:
+`basename $script` -S "s1.ex.com,s2.ex.com" -c -j -J 8G -N 1G -W 6G -C 4
 USAGE
   exit 1
 }
@@ -560,7 +637,7 @@ function check_variables () {
   fi
   if [[ -z $cassandra_cluster_name ]]; then
     print_error "Variable 'cassandra_cluster_name' is required, set this variable in the script to proceed"
-    exit 1    
+    exit 1
   fi
   if [[ -z $cassandra_seeds ]]; then
     print_warning "Cassandra seeds list is not passed, seeds list is required for deploying cassandra in distributed mode"
@@ -586,41 +663,28 @@ function check_variables () {
       print_warning "jvm new generation size is not set, default value of 800M will be used"
     fi
   fi
+  # Check if the data_dirs is properly defined
+  if [[ ! $(declare -p cassandra_data_dirs) =~ "declare -a" ]]; then
+    print_error "Expecting array for variable 'cassandra_data_dirs'."
+    exit 1
+  fi
 }
 
 function main () {
   trap "kill 0" SIGINT SIGTERM EXIT
 
   # parse command line options
-  while getopts S:B:J:N:D:R:sadjbrivh opts
+  while getopts B:C:D:J:N:R:S:W:abcdijrsvh opts
   do
     case $opts in
-      s)
-        solr_enabled="true"
-        ;;
-      a)
-        hadoop_enabled="true"
-        ;;
-      d)
-        configure_dc_enabled="true"
-        ;;
-      j)
-        configure_dse_heap_enabled="true"
-        ;;
-      b)
-        configure_broadcast_enabled="true"
-        ;;
-      r)
-        force_restart="true"
-        ;;
-      i)
-        increase_defaults="true"
-        ;;
-      S)
-        cassandra_seeds=$OPTARG
-        ;;
       B)
         broadcast_address=$OPTARG
+        ;;
+      C)
+        spark_worker_cores=$OPTARG
+        ;;
+      D)
+        dse_datacenter_name=$OPTARG
         ;;
       J)
         cassandra_jvm_size=$OPTARG
@@ -628,18 +692,45 @@ function main () {
       N)
         cassandra_jvm_newgen_size=$OPTARG
         ;;
-      D)
-        dse_datacenter_name=$OPTARG
-        ;;
       R)
         dse_rack_name=$OPTARG
-        ;;   
+        ;;
+      S)
+        cassandra_seeds=$OPTARG
+        ;;
+      W)
+        spark_worker_memory=$OPTARG
+        ;;
+      a)
+        hadoop_enabled="true"
+        ;;
+      b)
+        configure_broadcast_enabled="true"
+        ;;
+      c)
+        spark_enabled="true"
+        ;;
+      d)
+        configure_dc_enabled="true"
+        ;;
+      i)
+        increase_defaults="true"
+        ;;
+      j)
+        configure_dse_heap_enabled="true"
+        ;;
+      r)
+        force_restart="true"
+        ;;
+      s)
+        solr_enabled="true"
+        ;;
       v)
         debug="true"
-        ;;   
+        ;;
       h)
         usage
-        ;;        
+        ;;
       \?)
         usage
         ;;
@@ -653,7 +744,7 @@ function main () {
   check_preqs
   stop_iptables
   stop_selinux
-  install_jdk
+  install_oracle_jdk
   configure_jdk
   install_dse
   configure_dse
@@ -662,6 +753,12 @@ function main () {
   fi
   if [[ "$hadoop_enabled" = "true" ]]; then
     enable_hadoop
+  fi
+  if [[ "$spark_enabled" = "true" ]]; then
+    enable_spark
+    if [[ -n $spark_worker_cores || -n $spark_worker_memory ]]; then
+      configure_spark_memory $spark_worker_cores $spark_worker_memory
+    fi
   fi
   if [[ "$configure_dc_enabled" = "true" ]]; then
     configure_dse_dc $dse_datacenter_name $dse_rack_name

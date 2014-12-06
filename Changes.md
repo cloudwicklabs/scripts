@@ -5,6 +5,7 @@ dse_installer
 -------------
 * 0.1 - Initial Commit
 * 0.2 - Updates to include data directories configuration
+* 0.3 - Integrate dse-spark, update dse to 4.6.0
 
 puppet_installer
 ----------------
