@@ -501,12 +501,12 @@ LIMITS
 
 function configure_spark_memory () {
   local worker_cores=${1:-4}
-  local worker_memory=${2:-4G}
+  local worker_memory=${2:-2048m}
   local spark_env="/etc/dse/spark/spark-env.sh"
 
   print_info "Configuring spark worker memory"
-  execute "sed -s s/# export SPARK_WORKER_MEMORY=2048m/export SPARK_WORKER_MEMORY=$worker_memory/g $spark_env"
-  execute "sed -s s/# export SPARK_WORKER_CORES=4/export SPARK_WORKER_CORES=$worker_cores/g $spark_env"
+  execute "sed -s s/# export SPARK_WORKER_MEMORY=.*/export SPARK_WORKER_MEMORY=$worker_memory/g $spark_env"
+  execute "sed -s s/# export SPARK_WORKER_CORES=.*/export SPARK_WORKER_CORES=$worker_cores/g $spark_env"
 }
 
 function enable_solr () {
@@ -558,6 +558,7 @@ declare dse_datacenter_name
 declare dse_rack_name
 declare force_restart
 declare increase_defaults
+declare configure_spark
 declare spark_worker_cores
 declare spark_worker_memory
 declare spark_enabled
@@ -681,6 +682,7 @@ function main () {
         broadcast_address=$OPTARG
         ;;
       C)
+        configure_spark="true"
         spark_worker_cores=$OPTARG
         ;;
       D)
@@ -699,6 +701,7 @@ function main () {
         cassandra_seeds=$OPTARG
         ;;
       W)
+        configure_spark="true"
         spark_worker_memory=$OPTARG
         ;;
       a)
@@ -756,7 +759,7 @@ function main () {
   fi
   if [[ "$spark_enabled" = "true" ]]; then
     enable_spark
-    if [[ -n $spark_worker_cores || -n $spark_worker_memory ]]; then
+    if [[ "$configure_spark" = "true" ]]; then
       configure_spark_memory $spark_worker_cores $spark_worker_memory
     fi
   fi
