@@ -1,7 +1,7 @@
-Cloudwick Deployment Scripts
-============================
-DSE Installer (dse_install.sh)
-------------------------------
+# Cloudwick Deployment Scripts
+
+## DSE Installer (dse_install.sh)
+
 Script used to install cassandra datastax enterprise edition.
 
 ###Variables:
@@ -47,8 +47,10 @@ Install dse on a cluster with seeds list, configure jvm heap sizes:
 dse_install.sh -S "s1.ex.com,s2.ex.com" -j -J 8G -N 1G
 ```
 
-Puppet Installer (puppet_install.sh)
-------------------------------------
+---
+
+## Puppet Installer (puppet_install.sh)
+
 Script to install puppet server/client, additionally can do the following:
 
 * puppetdb for stored configs
@@ -90,8 +92,10 @@ Install puppet client:
 install_puppet.sh -c -H {puppet_server_hostname}
 ```
 
-Chef Installer (chef_install.sh)
-------------------------------------
+---
+
+## Chef Installer (chef_install.sh)
+
 Script to install chef server/client and configure knife.
 
 ###Usage:
@@ -116,8 +120,10 @@ chef_install.sh -s -c -w -J {-Xmx512m|-Xmx256m} -H {cs_hostname} -h
 -h: show help
 ```
 
-Mongo Installer (mongo_install.sh)
-----------------------------------
+---
+
+## Mongo Installer (mongo_install.sh)
+
 Script to install mongo in single/sharded/replicated mode with support for deploying mms-agent with munin hardware monitoring
 
 ###Usage:
@@ -180,11 +186,12 @@ Install mongo on a cluster mode with 2 replica sets:
   mongo_install.sh -I "s1r1.cw.com:27018,s1r2.cw.com:27018,s1a1.cw.com:27018" -A "s1a1.cw.com:27018"
 12. Initialize replica set 2, run this from replica (replB) primary master
   mongo_install.sh -I "s2r1.cw.com:27018,s2r2.cw.com:27018,s2a1.cw.com:27018" -A "s2a1.cw.com:27018"
-
 ```
 
-YARN Configuration Tuner (mr2_generator.rb)
--------------------------------------------
+---
+
+## YARN Configuration Tuner (mr2_generator.rb)
+
 This program will generate recommended YARN MR2 configuration properties
 
 ###Download:
@@ -218,8 +225,10 @@ If your cluster also has HBase collocated with node managers then:
 ruby mr2_generator.rb --cores 12 --disks 12 --ram 128 --hbase
 ```
 
-NameNode Metadata Backup (nn_backup.rb)
----------------------------------------
+---
+
+## NameNode Metadata Backup (nn_backup.rb)
+
 Back's up namenode metadata, specifically fsimage and edits regularly
 
 ###Download:
@@ -258,8 +267,10 @@ For hadoop version until 1.0:
 ruby nn_backup.rb --dirs /tmp/1,/tmp/2 --namenode ec2-54-203-242-124.us-west-2.compute.amazonaws.com
 ```
 
-Job Postings Fetcher (fetch_job_postings.rb)
---------------------------------------------
+---
+
+## Job Postings Fetcher (fetch_job_postings.rb)
+
 Script to pull job postings from dice and put them to google spread sheet
 
 ###Usage:
@@ -301,7 +312,9 @@ For description on options:
 ruby fetch_job_postings.rb --help
 ```
 
-###License and Authors
+---
+
+## License and Authors
 
 Authors: [Ashrith](http://github.com/ashrithr)
 
