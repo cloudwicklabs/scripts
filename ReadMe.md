@@ -218,6 +218,46 @@ If your cluster also has HBase collocated with node managers then:
 ruby mr2_generator.rb --cores 12 --disks 12 --ram 128 --hbase
 ```
 
+NameNode Metadata Backup (nn_backup.rb)
+---------------------------------------
+Back's up namenode metadata, specifically fsimage and edits regularly
+
+###Download:
+
+```
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/nn_backup.rb
+```
+
+###Usage:
+
+```
+Usage: nn_backup.rb [OPTIONS]
+    -v, --verbose                    Output more information
+    -d, --dirs DIR1,DIR2,DIR3        List of directories to store the metadata to
+    -n, --namenode HOST              NameNode hostname or IpAddress
+    -p, --port PORT                  NameNode port number
+    -s START_TRANS_ID,               Start transaction id for edits file
+        --start-trans-id
+    -e, --end-trans-id END_TRANS_ID  End transaction id for edits file
+    -h, --help                       Display this screen
+```
+
+**Examples Invocations**:
+
+For hadoop 2.0 later, specify start and end transaction id's:
+
+The following script will download fsimage and edits (between transaction id's 1 and 130) to two dir locations `/tmp/1` and `/tmp/2`
+
+```
+ruby nn_backup.rb --dirs /tmp/1,/tmp/2 --namenode ec2-54-203-242-124.us-west-2.compute.amazonaws.com -s 1 -e 130
+```
+
+For hadoop version until 1.0:
+
+```
+ruby nn_backup.rb --dirs /tmp/1,/tmp/2 --namenode ec2-54-203-242-124.us-west-2.compute.amazonaws.com
+```
+
 Job Postings Fetcher (fetch_job_postings.rb)
 --------------------------------------------
 Script to pull job postings from dice and put them to google spread sheet
