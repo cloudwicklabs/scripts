@@ -896,7 +896,7 @@ function main () {
   trap "kill 0" SIGINT SIGTERM EXIT
 
   # parse command line options
-  while getopts J:P:H:scdpajvh opts
+  while getopts J:P:H:scdpajvwh opts
   do
     case $opts in
       s)
