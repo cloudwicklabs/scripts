@@ -10,7 +10,7 @@ Change the following variables `datastax_user` & `datastax_password` in the scri
 ###Usage:
 
 ```
-curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/dse_install.sh
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/dse_install.sh
 chmod +x dse_install.sh
 ./dse_install.sh -h
 ```
@@ -61,7 +61,7 @@ Script to install puppet server/client, additionally can do the following:
 ###Usage:
 
 ```
-curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/puppet_install.sh
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/puppet_install.sh
 chmod +x puppet_install.sh
 ./puppet_install.sh -h
 ```
@@ -101,7 +101,7 @@ Script to install chef server/client and configure knife.
 ###Usage:
 
 ```
-curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/chef_install.sh
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/chef_install.sh
 chmod +x chef_install.sh
 ./chef_install.sh -h
 ```
@@ -129,7 +129,7 @@ Script to install mongo in single/sharded/replicated mode with support for deplo
 ###Usage:
 
 ```
-curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/mongo_install.sh
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/mongo_install.sh
 chmod +x mongo_install.sh
 ./mongo_install.sh -h
 ```
@@ -278,7 +278,7 @@ Script to pull job postings from dice and put them to google spread sheet
 Download:
 
 ```
-curl -sO https://raw2.github.com/cloudwicklabs/scripts/master/fetch_job_postings.rb
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/fetch_job_postings.rb
 ```
 
 Install ruby gem dependencies:
