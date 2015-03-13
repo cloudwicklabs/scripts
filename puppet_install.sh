@@ -670,7 +670,7 @@ DELIM
     if [[ ! -f /usr/share/puppet/rack/puppetmasterd/config.ru ]]; then
       # execute "cd /usr/share/puppet/rack/puppetmasterd/ && curl -O https://raw.githubusercontent.com/puppetlabs/puppet/master/ext/rack/config.ru"
       # TODO: this is a quick hack to fix the config.ru anyhow make sure we properly replace the configuration elements in the below file using `puppet config print [optionname]`
-      cat > $passenger_conf <<DELIM
+      cat > /usr/share/puppet/rack/puppetmasterd/config.ru <<DELIM
 # a config.ru, for use with every rack-compatible webserver.
 # SSL needs to be handled outside this, though.
 
