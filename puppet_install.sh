@@ -853,9 +853,10 @@ function start_puppetdb () {
 }
 
 function pause_till_puppetdb_starts () {
+  print_info "Waiting till puppetdb start's up (timeout in 60 seconds)"
   timeout 60s bash -c '
 while : ; do
- grep "Started SslSelectChannelConnector@" /var/log/puppetdb/puppetdb.log &>/dev/null && break
+ grep "Started ServerConnector@" /var/log/puppetdb/puppetdb.log &>/dev/null && break
  printf .
  sleep 1
 done
