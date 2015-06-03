@@ -190,39 +190,36 @@ Install mongo on a cluster mode with 2 replica sets:
 
 ---
 
-## YARN Configuration Tuner (mr2_generator.rb)
+## Hadoop Configuration Tuner (hadoop_tuner.rb)
 
-This program will generate recommended YARN MR2 configuration properties
+This program will generate recommended Hadoop configuration properties based on the cluster hardware
 
 ###Download:
 
 ```
-curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/mr2_generator.rb
+curl -sO https://raw.githubusercontent.com/cloudwicklabs/scripts/master/hadoop_tuner.rb
 ```
 
 ###Usage:
 
 ```
-Usage: mr2_generator.rb [options]
+Usage: hadoop_tuner.rb [options]
     -c, --cores INT                  Specify number of cores on each slave node
     -r, --ram INT                    Specify RAM in GB on each slave node
     -d, --disks INT                  Specify number of disks on each slave node
+    -s, --size INT                   Specify size of the disk in GB
+    -n, --number-of-slaves INT       Specify number of worker nodes in the cluster
+    -m, --nn-mem INT                 Specify NameNode memory in GB
     -h, --hbase                      Wether HBase is part of the cluster
         --help                       Show this message
 ```
 
 Examples Invocations:
 
-Assuming your node manager's have 12 cores, 128 GB RAM and 12 spindles:
+Assuming you have 50 workers each with 12 cores, 128 GB RAM and 12 disks:
 
 ```
-ruby mr2_generator.rb --cores 12 --disks 12 --ram 128
-```
-
-If your cluster also has HBase collocated with node managers then:
-
-```
-ruby mr2_generator.rb --cores 12 --disks 12 --ram 128 --hbase
+ruby hadoop_tuner.rb -c 12 -r 128 -d 12 -n 50 -s 1024
 ```
 
 ---
