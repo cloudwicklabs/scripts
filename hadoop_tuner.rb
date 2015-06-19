@@ -292,7 +292,7 @@ def hdfs_tuning
     "HADOOP_DATANODE_OPTS",
     "Specify DataNode heap size, garbage collectors for new and old generation, configure GC logging, auit logging. Note: consider the average # of blocks per datanode, and consider a heap size of roughly 1G/500k blocks as a minimum requirement additional heap should be configured for transient data in addition to this base/minimum requirement.",
     "-Xmx1024m",
-    "-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:-CMSConcurrentMTEnabled -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:ErrorFile=/var/log/hadoop/$USER/hs_err_pid%p.log -XX:NewSize=#{dnng}G -XX:MaxNewSize=#{dnng}G -Xloggc:/var/log/hadoop/$USER/gc.log-`date +'%Y%m%d%H%M'` -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -Xms#{dnh}G -Xmx#{dnh}G -Dhadoop.security.logger=INFO,DRFAS -Dhdfs.audit.logger=INFO,DRFAAUDIT ${HADOOP_DATANODE_OPTS}",
+    "-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:-CMSConcurrentMTEnabled -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:ErrorFile=/var/log/hadoop/$USER/hs_err_pid%p.log -XX:NewSize=#{dnng}M -XX:MaxNewSize=#{dnng}M -Xloggc:/var/log/hadoop/$USER/gc.log-`date +'%Y%m%d%H%M'` -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -Xms#{dnh}G -Xmx#{dnh}G -Dhadoop.security.logger=INFO,DRFAS -Dhdfs.audit.logger=INFO,DRFAAUDIT ${HADOOP_DATANODE_OPTS}",
     "hadoop-env.sh"
   )
 
