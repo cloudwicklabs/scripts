@@ -13,6 +13,7 @@ puppet_installer
 * 0.2 - Includes puppetdb support
 * 0.3 - Includes passenger support
 * 0.4 - Fixes a bug where os is not determined correctly
+* 0.5 - Changes required to pass ShellChecker
 
 mongo_installer
 ---------------

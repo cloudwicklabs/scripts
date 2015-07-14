@@ -7,7 +7,7 @@
 #               * postgresql (dependency for puppetdb)
 #               * autosigning for puppet clients belonging to same domain
 # Supported OS:: CentOS, Redhat, Ubuntu
-# Version: 0.4
+# Version: 0.5
 #
 # Copyright 2013, Cloudwick, Inc.
 #
@@ -35,8 +35,6 @@ declare os_version
 declare os_codename
 declare os_arch
 declare package_manager
-declare puppet_server_package
-declare puppet_client_package
 
 # colors
 clr_blue="\x1b[34m"
@@ -66,31 +64,31 @@ function print_banner () {
 }
 
 function print_error () {
-  printf "$(date +%s) ${clr_red}[ERROR] ${clr_end}$@\n"
+  printf "%s %b[ERROR]%b $*\n" "$(date +%s)" "${clr_red}" "${clr_end}"
 }
 
 function print_warning () {
-  printf "$(date +%s) ${clr_yellow}[WARN] ${clr_end}$@\n"
+  printf "%s %b[WARN]%b $*\n" "$(date +%s)" "${clr_yellow}" "${clr_end}"
 }
 
 function print_info () {
-  printf "$(date +%s) ${clr_green}[INFO] ${clr_end}$@\n"
+  printf "%s %b[INFO]%b $*\n" "$(date +%s)" "${clr_green}" "${clr_end}"
 }
 
 function print_debug () {
   if [[ $debug = "true" ]]; then
-    printf "$(date +%s) ${clr_cyan}[DEBUG] ${clr_end}$@\n"
+    printf "%s %b[DEBUG]%b $*\n" "$(date +%s)" "${clr_cyan}" "${clr_end}"
   fi
 }
 
 function execute () {
   local full_redirect="1>>$stdout_log 2>>$stderr_log"
-  /bin/bash -c "$@ $full_redirect"
+  /bin/bash -c "$* $full_redirect"
   ret=$?
   if [ $ret -ne 0 ]; then
-    print_debug "Executed command \'$@\', returned non-zero code: ${clr_yellow}${ret}${clr_end}"
+    print_debug "Executed command \'$*\', returned non-zero code: ${clr_yellow}${ret}${clr_end}"
   else
-    print_debug "Executed command \'$@\', returned successfully."
+    print_debug "Executed command \'$*\', returned successfully."
   fi
   return $ret
 }
@@ -105,14 +103,14 @@ function check_for_root () {
 function get_system_info () {
   print_debug "Collecting system configuration..."
 
-  os=`uname -s`
+  os=$(uname -s)
   if [[ "$os" = "SunOS" ]] ; then
     os="Solaris"
-    os_arch=`uname -p`
+    os_arch=$(uname -p)
   elif [[ "$os" = "Linux" ]] ; then
     if [[ -f /etc/redhat-release ]]; then
       os_str=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' | tr '[:upper:]' '[:lower:]' )
-      os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
+      os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]' )
       if [[ $os_str =~ centos ]]; then
         os="centos"
       elif [[ $os_str =~ red ]]; then
@@ -142,8 +140,8 @@ function get_system_info () {
       print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
       exit 1
     fi
-    os=$( echo $os | sed -e "s/ *//g")
-    os_arch=`uname -m`
+    os="${os// */}"
+    os_arch=$(uname -m)
     if [[ "xi686" == "x${os_arch}" || "xi386" == "x${os_arch}" ]]; then
       os_arch="i386"
     fi
@@ -152,12 +150,12 @@ function get_system_info () {
     fi
   elif [[ "$os" = "Darwin" ]]; then
     type -p sw_vers &>/dev/null
-    [[ $? -eq 0 ]] && {
+    if [[ $? -eq 0 ]]; then
       os="macosx"
-      os_version=`sw_vers | grep 'ProductVersion' | cut -f 2`
-    } || {
+      os_version=$(sw_vers | grep 'ProductVersion' | cut -f 2)
+    else
       os="macosx"
-    }
+    fi
   fi
 
   if [[ $os =~ centos || $os =~ redhat ]]; then
@@ -342,16 +340,16 @@ function configure_postgres () {
           -e "s|local *all *all .*|local    all         all                   trust|g" \
           -e "s|host *all *all *127.0.0.1/32 .*|host    all         all        127.0.0.1/32           trust|g" \
           -e "s|host *all *all *::1/128 .*|host    all         all        ::1/128           trust|g" \
-          -i $psql_config
+          -i "$psql_config"
       execute "grep puppetdb $psql_config"
       if [[ $? -ne 0 ]]; then
         file_change="true"
-        echo 'host  puppetdb  puppetdb  0.0.0.0/0   trust' >> $psql_config
+        echo 'host  puppetdb  puppetdb  0.0.0.0/0   trust' >> "$psql_config"
       fi
       execute "grep \"listen_addresses = '0.0.0.0'\" $psql_data_conf"
       if [[ $? -ne 0 ]]; then
         file_change="true"
-        echo "listen_addresses = '0.0.0.0'" >> $psql_data_conf
+        echo "listen_addresses = '0.0.0.0'" >> "$psql_data_conf"
       fi
       ;;
     *)
@@ -365,8 +363,10 @@ function configure_postgres () {
 }
 
 function start_postgres () {
-  local service="postgresql"
-  local service_count=$(ps -ef | grep -v grep | grep postmaster | wc -l)
+  local service
+  local service_count
+  service="postgresql"
+  service_count=$(pgrep -f postmaster | wc -l)
   if [[ $service_count -gt 0 && "$force_restart" = "true" ]]; then
     print_info "Restarting service $service..."
     execute "service $service restart"
@@ -433,8 +433,10 @@ function install_puppet_server () {
 }
 
 function configure_puppet_server () {
-  local eth0_ip_address=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | grep 'Bcast' | awk '{print $1}')
-  local puppet_server_fqdn=$(hostname --fqdn)
+  #local eth0_ip_address
+  local puppet_server_fqdn
+  #eth0_ip_address=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | grep 'Bcast' | awk '{print $1}')
+  puppet_server_fqdn=$(hostname --fqdn)
 
   cat > /etc/puppet/puppet.conf <<END
 [main]
@@ -451,8 +453,10 @@ END
 }
 
 function configure_autosign_certificates () {
-  local puppet_server_fqdn=$(hostname --fqdn)
-  local domain_name=$(echo $puppet_server_fqdn | cut -d "." -f 2-)
+  local puppet_server_fqdn
+  puppet_server_fqdn=$(hostname --fqdn)
+  local domain_name
+  domain_name=$(echo "$puppet_server_fqdn" | cut -d "." -f 2-)
   echo "*.${domain_name}" > /etc/puppet/autosign.conf
 }
 
@@ -588,12 +592,14 @@ function install_passenger () {
 
 function configure_passenger () {
   print_info "Configuring passenger..."
-  local puppet_server_fqdn=$(hostname --fqdn)
-  local puppet_server_fqdn_lowercase=$(echo $puppet_server_fqdn | tr '[:upper:]' '[:lower:]')
+  local puppet_server_fqdn
+  local puppet_server_fqdn_lowercase
   local puppet_conf="/etc/puppet/puppet.conf"
   local passenger_conf
   local ruby_path
   local ruby_exec
+  puppet_server_fqdn=$(hostname --fqdn)
+  puppet_server_fqdn_lowercase=$(echo "$puppet_server_fqdn" | tr '[:upper:]' '[:lower:]')
   case "$os" in
     centos|redhat)
       passenger_conf="/etc/httpd/conf.d/puppet.conf"
@@ -774,7 +780,8 @@ function install_puppetdb () {
 
 function configure_puppetdb () {
   local puppetdb_default
-  local puppet_server_fqdn=$(hostname --fqdn)
+  local puppet_server_fqdn
+  puppet_server_fqdn=$(hostname --fqdn)
   case "$os" in
     centos|redhat)
       puppetdb_default="/etc/sysconfig/puppetdb"
@@ -807,8 +814,8 @@ log-slow-statements = 10
 PUPPETDBDELIM
 
   # configure Jetty to listen on 8085 and ssl on 8086
-  sed -i s/port\ \=\ 8080/port\ \=\ 8085/g  /etc/puppetdb/conf.d/jetty.ini
-  sed -i s/ssl-port\ \=\ 8081/ssl-port\ \=\ 8086/g  /etc/puppetdb/conf.d/jetty.ini
+  sed -i s/port\ =\ 8080/port\ =\ 8085/g  /etc/puppetdb/conf.d/jetty.ini
+  sed -i s/ssl-port\ =\ 8081/ssl-port\ =\ 8086/g  /etc/puppetdb/conf.d/jetty.ini
 
   # install plugin to connect puppet master to puppetdb
   cat > /etc/puppet/puppetdb.conf <<DELIM
@@ -840,7 +847,8 @@ DELIM
 
 function start_puppetdb () {
   local service="puppetdb"
-  local service_count=$(ps -ef | grep -v grep | grep java | grep $service | wc -l)
+  local service_count
+  service_count=$(pgrep -f java | grep -c $service)
   if [[ $service_count -gt 0 && "$force_restart" = "true" ]]; then
     print_info "Restarting service $service..."
     execute "service $service restart"
@@ -884,12 +892,13 @@ declare postgresql_password
 declare puppet_server_hostname
 declare setup_puppet_cron_job
 declare wait_for_puppetdb
+declare force_restart
 
 function usage () {
   script=$0
   cat <<USAGE
 Syntax
-`basename ${script}` -s -c -d -p -a -j -J {-Xmx512m|-Xmx256m} -P {psql_password} -H {ps_hostname} -h
+$(basename "$script") -s -c -d -p -a -j -J {-Xmx512m|-Xmx256m} -P {psql_password} -H {ps_hostname} -h
 
 -s: puppet server setup
 -c: puppet client setup
@@ -906,11 +915,11 @@ Syntax
 
 Examples:
 Install puppet server with all defaults:
-`basename $script` -s
+$(basename "$script") -s
 Install puppet server with puppetdb and passenger:
-`basename $script` -s -p -d
+$(basename "$script") -s -p -d
 Install puppet client:
-`basename $script` -c -H {puppet_server_hostname}
+$(basename "$script") -c -H {puppet_server_hostname}
 
 USAGE
   exit 1
@@ -940,10 +949,13 @@ function check_variables () {
 }
 
 function main () {
+  local start_time
+  local end_time
+
   trap "kill 0" SIGINT SIGTERM EXIT
 
   # parse command line options
-  while getopts J:P:H:scdpajvwh opts
+  while getopts J:P:H:scdpajvwfh opts
   do
     case $opts in
       s)
@@ -966,6 +978,9 @@ function main () {
         ;;
       w)
         wait_for_puppetdb="true"
+        ;;
+      f)
+        force_restart="true"
         ;;
       J)
         puppetdb_jvm_size=$OPTARG
@@ -990,7 +1005,7 @@ function main () {
 
   print_banner
   check_variables
-  local start_time="$(date +%s)"
+  start_time="$(date +%s)"
   get_system_info
   check_preqs
   stop_iptables
@@ -1028,12 +1043,12 @@ function main () {
       start_puppet_client
     fi
   else
-    print_error "Invalid script options, should wither pass -s or -c option"
+    print_error "Invalid script options, try passing -s or -c option"
     usage
     exit 1
   fi
-  local end_time="$(date +%s)"
+  end_time="$(date +%s)"
   print_info "Execution complete. Time took: $((end_time - start_time)) second(s)"
 }
 
-main $@
+main "$@"
