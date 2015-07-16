@@ -1,8 +1,13 @@
 #!/usr/bin/env ruby
 
 # Author:: Ashrith Mekala (<ashrith@cloudwick.com>)
-# Description:: Produces recommended hadoop cluster parameters based on cluster's hardware
-# Version: 0.2
+# Description:: Produces recommended hadoop v2 cluster parameters based on
+#               cluster's hardware.
+# Version: 0.3
+# TODO:
+#   1. Add HBase tuning
+#   2. Add Spark tuning
+#   3. Add Hive
 #
 # Copyright 2014, Cloudwick Inc.
 #
@@ -249,7 +254,7 @@ def hdfs_tuning
       "The number of server threads for the DataNode. More threads means more read/write requests"+
       " can be handled simultaneously",
       3,
-      3, # TODO
+      "TODO", # TODO
       "hdfs-site.xml"
     ),
     gen_param(
@@ -270,7 +275,7 @@ def hdfs_tuning
       "dfs.datanode.max.transfer.threads",
       "Specifies the maximum number of threads to use for transferring data in and out of the DataNode.",
       4096,
-      0,
+      "TODO", # TODO
       "hdfs-site.xml"
     )
   ]
@@ -288,11 +293,13 @@ def hdfs_tuning
                   end
   dnng = (dnh * 1/8)
 
+  # TODO not proprely outputting
   datanode_params << gen_param(
     "HADOOP_DATANODE_OPTS",
     "Specify DataNode heap size, garbage collectors for new and old generation, configure GC logging, auit logging. Note: consider the average # of blocks per datanode, and consider a heap size of roughly 1G/500k blocks as a minimum requirement additional heap should be configured for transient data in addition to this base/minimum requirement.",
     "-Xmx1024m",
-    "-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:-CMSConcurrentMTEnabled -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:ErrorFile=/var/log/hadoop/$USER/hs_err_pid%p.log -XX:NewSize=#{dnng}M -XX:MaxNewSize=#{dnng}M -Xloggc:/var/log/hadoop/$USER/gc.log-`date +'%Y%m%d%H%M'` -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -Xms#{dnh}G -Xmx#{dnh}G -Dhadoop.security.logger=INFO,DRFAS -Dhdfs.audit.logger=INFO,DRFAAUDIT ${HADOOP_DATANODE_OPTS}",
+    "TODO",
+    #"-server -XX:ParallelGCThreads=8 -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:-CMSConcurrentMTEnabled -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:ErrorFile=/var/log/hadoop/$USER/hs_err_pid%p.log -XX:NewSize=#{dnng}M -XX:MaxNewSize=#{dnng}M -Xloggc:/var/log/hadoop/$USER/gc.log-`date +'%Y%m%d%H%M'` -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -Xms#{dnh}G -Xmx#{dnh}G -Dhadoop.security.logger=INFO,DRFAS -Dhdfs.audit.logger=INFO,DRFAAUDIT ${HADOOP_DATANODE_OPTS}",
     "hadoop-env.sh"
   )
 
@@ -341,14 +348,16 @@ def yarn_tuning
       "yarn.app.mapreduce.am.resource.mb",
       "The amount of memory the MR AppMaster needs.",
       1536,
-      2 * ram_per_container,
+      # TODO check this Cloudera recommends other value
+      ram_per_container,
       "mapred-site.xml"
     ),
     gen_param(
       "yarn.app.mapreduce.am.command-opts",
       "Java opts for the MR App Master processes.",
       "-Xmx1024m",
-      "-Xmx#{0.8 * 2 * ram_per_container}m",
+      # TODO check this Cloudera recommends other value
+      "-Xmx#{0.8 * ram_per_container}m",
       "yarn-site.xml"
     ),
     gen_param(
@@ -362,7 +371,8 @@ def yarn_tuning
       "mapreduce.reduce.memory.mb",
       1024,
       "The amount of memory to request from the scheduler for each reduce task.",
-      2 * ram_per_container,
+      # TODO check this Cloudera recommends other value
+      ram_per_container,
       "mapred-site.xml"
     ),
     gen_param(
@@ -376,7 +386,8 @@ def yarn_tuning
       "mapreduce.reduce.java.opts",
       "JVM options passed to the reducer",
       "",
-      "-Xmx#{(0.8 * 2 * ram_per_container).to_i}m",
+      # TODO check this Cloudera recommends other value
+      "-Xmx#{(0.8 * ram_per_container).to_i}m",
       "mapred-site.xml"
     ),
     gen_param(
