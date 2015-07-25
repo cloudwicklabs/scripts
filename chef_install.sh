@@ -368,7 +368,7 @@ function install_chef_server () {
 
 function configure_chef_server () {
   local primary_net=$(ip route list match 0.0.0.0 | awk 'NR==1 {print $5}')
-  local primary_net_ip=$(ip addr show dev ${PRIMARY_INTERFACE} | awk 'NR==3 {print $2}' | cut -d '/' -f1)
+  local primary_net_ip=$(ip addr show dev ${primary_net} | awk 'NR==3 {print $2}' | cut -d '/' -f1)
   local chef_url="https://${primary_net_ip}:${chef_server_ssl_port}"
   print_info "Configuring chef-server..."
   if [[ ! -e "/etc/chef-server/chef-server.rb" ]]; then
@@ -459,7 +459,7 @@ function setup_admin_user () {
 
 function configure_knife () {
   local primary_net=$(ip route list match 0.0.0.0 | awk 'NR==1 {print $5}')
-  local primary_net_ip=$(ip addr show dev ${PRIMARY_INTERFACE} | awk 'NR==3 {print $2}' | cut -d '/' -f1)
+  local primary_net_ip=$(ip addr show dev ${primary_net} | awk 'NR==3 {print $2}' | cut -d '/' -f1)
   local chef_url="https://${primary_net_ip}:${chef_server_ssl_port}"
   if [[ ! -f ${HOME}/.chef/knife.rb ]]; then
     print_info "Configuring knife..."
