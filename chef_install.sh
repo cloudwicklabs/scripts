@@ -119,22 +119,30 @@ function get_system_info () {
     os="Solaris"
     os_arch=`uname -p`
   elif [[ "$os" = "Linux" ]] ; then
-    if [[ -f /etc/lsb-release ]] ; then
-      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
-      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
-      if [[ $os_str =~ ubuntu ]]; then
-        os="ubuntu"
-      else
-        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
-        exit 1
-      fi
-    else
+    if [[ -f /etc/redhat-release ]]; then
       os_str=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' | tr '[:upper:]' '[:lower:]' )
-      os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]')
+      os_version=$( cat `ls /etc/*release | grep "redhat\|SuSE"` | head -1 | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }' | tr '[:upper:]' '[:lower:]' )
       if [[ $os_str =~ centos ]]; then
         os="centos"
       elif [[ $os_str =~ red ]]; then
         os="redhat"
+      else
+        print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
+        exit 1
+      fi
+    elif [[ -f /etc/lsb-release ]] ; then
+      os_str=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } print $i; } }' )
+      os_version=$( lsb_release -sd | tr '[:upper:]' '[:lower:]' | tr '"' ' ' | awk '{ for(i=1; i<=NF; i++) { if ( $i ~ /[0-9]+/ ) { cnt=split($i, arr, "."); if ( cnt > 1) { print arr[1] } else { print $i; } break; } } }')
+      if [[ $os_str =~ ubuntu ]]; then
+        os="ubuntu"
+        if grep -q precise /etc/lsb-release; then
+          os_codename="precise"
+        elif grep -q lucid /etc/lsb-release; then
+          os_codename="lucid"
+        else
+          print_error "Sorry, only precise & lucid systems are supported by this script. Exiting."
+          exit 1
+        fi
       else
         print_error "OS: $os_str is not yet supported, contact support@cloudwicklabs.com"
         exit 1
