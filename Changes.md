@@ -14,6 +14,7 @@ puppet_installer
 * 0.3 - Includes passenger support
 * 0.4 - Fixes a bug where os is not determined correctly
 * 0.5 - Changes required to pass ShellChecker
+* 0.6 - Update puppet_installer to support puppet v4
 
 mongo_installer
 ---------------
