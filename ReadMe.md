@@ -313,6 +313,6 @@ ruby fetch_job_postings.rb --help
 
 ## License and Authors
 
-Authors: [Ashrith](http://github.com/ashrithr)
+Authors: [Contributers](https://github.com/cloudwicklabs/scripts/graphs/contributors)
 
 Apache 2.0. Please see `LICENSE.txt`. All contents copyright (c) 2013, Cloudwick Labs.
